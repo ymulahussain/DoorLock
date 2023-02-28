@@ -1,48 +1,67 @@
-#include <Keypad.h>
-#include <Servo.h>
+#include "Adafruit_Keypad.h"
 
-// Define the pins for the servo motor and the keypad
-#define SERVO_PIN 12
-const byte ROWS = 4;
-const byte COLS = 4;
-char keys[ROWS][COLS] = {
-  {'1','2','3','A'},
-  {'4','5','6','B'},
-  {'7','8','9','C'},
-  {'*','0','#','D'}
-};
-byte rowPins[ROWS] = {5, 4, 3, 2};
-byte colPins[COLS] = {6, 7, 8, 10};
-Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+// define your specific keypad here via PID
+#define KEYPAD_PID3844
+// define your pins here
+// can ignore ones that don't apply
+#define R1    2
+#define R2    3
+#define R3    4
+#define R4    5
+#define C1    8
+#define C2    9
+#define C3    10
+#define C4    11
+// leave this import after the above configuration
+#include "keypad_config.h"
 
-// Define the variables for the servo motor and the keypad input
-Servo myservo;
-int angle = 0;
-String input = "";
+//initialize an instance of class Adafruit_Keypad
+Adafruit_Keypad customKeypad = Adafruit_Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+// define the pin for the LED
+#define LED_PIN 12
 
 void setup() {
-  // Initialize the servo motor and set it to 0 degrees
-  myservo.attach(SERVO_PIN);
-  myservo.write(angle);
-  // Initialize the serial communication for debugging
   Serial.begin(9600);
+  customKeypad.begin();
+  
+  // initialize the LED pin as an output
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
 }
 
 void loop() {
-  // Get the key input from the keypad
-  char key = keypad.getKey();
-  if (key != NO_KEY) {
-    // Add the key to the input string
-    input += key;
-    // Check if the input string is "1089"
-    if (input == "1089") {
-      // Turn the servo motor to 90 degrees
-      angle = 90;
-      myservo.write(angle);
-      // Print a message to the serial monitor for debugging
-      Serial.println("Servo motor turned");
-      // Reset the input string
+  customKeypad.tick();
+
+  String input = "";
+
+  while(customKeypad.available()){
+    keypadEvent e = customKeypad.read();
+
+    // Add the pressed key to the input string
+    input += e.bit.KEY;
+
+    // Check for a specific input sequence
+    if (input == "2586") {
+      // Turn on the LED
+      digitalWrite(LED_PIN, HIGH);
+      Serial.println("LED on");
+      Serial.println("Blue LED is on");  // Print the additional message
+      delay(1000);
+      
+      // Clear the input string
       input = "";
     }
+    
+    // Print the key and event type
+    Serial.print((char)e.bit.KEY);
+    if(e.bit.EVENT == KEY_JUST_PRESSED) {
+      Serial.println(" pressed");
+    } else if(e.bit.EVENT == KEY_JUST_RELEASED) {
+      Serial.println(" released");
+    }
   }
+
+  // Turn off the LED if the input sequence is no longer being entered
+  digitalWrite(LED_PIN, LOW);
 }
